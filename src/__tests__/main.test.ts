@@ -26,13 +26,19 @@ test.beforeEach(async t => {
   t.context.client.on('error', err => {}) // eslint-disable-line
   await t.context.client.query(`
 create table bikes (
-  id serial,
+  id serial PRIMARY KEY,
+  "serialNumber" varchar UNIQUE NOT NULL,
   weight real,
   make varchar,
-  model varchar,
-  primary key (id)
+  model varchar
 )
   `)
+
+  await postgraphile(t.context.client, 'public', {
+    appendPlugins: [PgMutationUpsertPlugin],
+    exportGqlSchemaPath: './postgraphile.graphql'
+  })
+
   const middleware = postgraphile(t.context.client, 'public', {
     graphiql: true,
     appendPlugins: [PgMutationUpsertPlugin]
@@ -48,20 +54,7 @@ test.afterEach(async t => {
   await container.teardown(t.context)
 })
 
-const all = async t => {
-  const query = nanographql`
-    query {
-      allBikes {
-        edges {
-          node {
-            id
-            make
-            model
-          }
-        }
-      }
-    }
-  `
+const exec = async (t, query) => {
   const res = await fetch(`http://localhost:${t.context.serverPort}/graphql`, {
     body: query(),
     headers: {
@@ -72,16 +65,33 @@ const all = async t => {
   return res.json()
 }
 
-const create = async t => {
+const all = async t => {
+  const query = nanographql`
+    query {
+      allBikes(orderBy: SERIAL_NUMBER_ASC) {
+        edges {
+          node {
+            id
+            serialNumber
+            make
+            model
+          }
+        }
+      }
+    }
+  `
+  return exec(t, query)
+}
+
+const create1 = async t => {
   const query = nanographql`
     mutation {
       upsertBike(where: {
-        bike: {
-          make: "kona"
-        }
+        serialNumber: "abc123"
       }, 
       input: {
         bike: {
+          serialNumber: "abc123"
           weight: 25.6
           make: "kona"
           model: "cool-ie deluxe"
@@ -91,23 +101,77 @@ const create = async t => {
       }
     }
   `
-  await fetch(`http://localhost:${t.context.serverPort}/graphql`, {
-    body: query(),
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    method: 'POST'
-  })
+  return exec(t, query)
+}
+
+const create2 = async t => {
+  const query = nanographql`
+    mutation {
+      upsertBike(where: {
+        serialNumber: "def456"
+      }, 
+      input: {
+        bike: {
+          serialNumber: "def456"
+          weight: 25.6
+          make: "honda"
+          model: "unicorn"
+        }
+      }) {
+        clientMutationId
+      }
+    }
+  `
+  return exec(t, query)
+}
+
+const update = async t => {
+  const query = nanographql`
+    mutation {
+      upsertBike(where: {
+        serialNumber: "abc123"
+      }, 
+      input: {
+        bike: {
+          serialNumber: "abc123"
+          weight: 25.6
+          make: "schwinn"
+          model: "stingray"
+        }
+      }) {
+        clientMutationId
+      }
+    }
+  `
+  return exec(t, query)
 }
 
 test('test upsert crud', async t => {
-  await create(t)
-  const res = await all(t)
-  t.is(res.data.allBikes.edges.length, 1)
-  t.is(res.data.allBikes.edges[0].node.make, 'kona')
+  {
+    await create1(t)
+    const res = await all(t)
+    t.is(res.data.allBikes.edges.length, 1)
+    t.is(res.data.allBikes.edges[0].node.make, 'kona')
+  }
+  {
+    await create2(t)
+    const res = await all(t)
+    t.is(res.data.allBikes.edges.length, 2)
+    t.is(res.data.allBikes.edges[0].node.make, 'kona')
+    t.is(res.data.allBikes.edges[1].node.make, 'honda')
+  }
+  {
+    await create1(t)
+    const res = await all(t)
+    t.is(res.data.allBikes.edges.length, 2)
+    t.is(res.data.allBikes.edges[0].node.make, 'kona')
+    t.is(res.data.allBikes.edges[1].node.make, 'honda')
+  }
+  {
+    await update(t)
+    const res = await all(t)
+    t.is(res.data.allBikes.edges.length, 2)
+    t.is(res.data.allBikes.edges[0].node.make, 'schwinn')
+    t.is(res.data.allBikes.edges[1].node.make, 'honda')
+  }
 })
-
-// "should create a new record when one doesn't exist"
-// "should update a record when one does exist"
-// "shouldn't update if more than one exists"
-//
