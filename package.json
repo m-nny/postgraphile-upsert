@@ -1,7 +1,7 @@
 {
   "name": "@fullstackio/postgraphile-upsert-plugin",
   "description": "add postgres upsert mutations to postgraphile",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "main": "build/postgraphile-upsert.js",
   "files": [
     "build/*.js",
