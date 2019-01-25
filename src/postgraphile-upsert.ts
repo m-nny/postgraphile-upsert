@@ -48,6 +48,37 @@ const PgMutationUpsertPlugin: Plugin = builder => {
           )
           if (!TableInput) return memo
           const tableTypeName = inflection.tableType(table)
+
+          // const uniqueConstraints = table.constraints.filter(
+          //   con => con.type === "u" || con.type === "p"
+          // );
+
+          // console.log("TableInput: ", TableInput);
+          // console.log("uniqueConstraints: ", uniqueConstraints);
+
+          // Where conditions
+          const WhereType = newWithHooks(
+            GraphQLInputObjectType,
+            {
+              name: `Upsert${tableTypeName}Where`,
+              description: `Where conditions for the upsert \`${tableTypeName}\` mutation.`,
+              fields: {
+                ...(TableInput
+                  ? {
+                      [inflection.tableFieldName(table)]: {
+                        description: `The \`${tableTypeName}\` to be upserted by this mutation.`,
+                        type: new GraphQLNonNull(TableInput)
+                      }
+                    }
+                  : null)
+              }
+            },
+            {
+              isPgCreateInputType: false,
+              pgInflection: table
+            }
+          )
+
           // Standard input type that 'create' uses
           const InputType = newWithHooks(
             GraphQLInputObjectType,
@@ -62,9 +93,10 @@ const PgMutationUpsertPlugin: Plugin = builder => {
                 },
                 ...(TableInput
                   ? {
-                    [inflection.tableFieldName(table)]: {
-                      description: `The \`${tableTypeName}\` to be upserted by this mutation.`,
-                      type: new GraphQLNonNull(TableInput)
+                      [inflection.tableFieldName(table)]: {
+                        description: `The \`${tableTypeName}\` to be upserted by this mutation.`,
+                        type: new GraphQLNonNull(TableInput)
+                      }
                     }
                   }
                   : null)
@@ -115,6 +147,9 @@ const PgMutationUpsertPlugin: Plugin = builder => {
                 description: `Upserts a single \`${tableTypeName}\`.`,
                 type: PayloadType,
                 args: {
+                  where: {
+                    type: new GraphQLNonNull(WhereType)
+                  },
                   input: {
                     type: new GraphQLNonNull(InputType)
                   }
@@ -183,20 +218,20 @@ const PgMutationUpsertPlugin: Plugin = builder => {
                   // SQL query for upsert mutations
                   const mutationQuery = sql.query`
                         insert into ${sql.identifier(
-    table.namespace.name,
-    table.name
-  )} ${
-  sqlColumns.length
-    ? sql.fragment`(
+                          table.namespace.name,
+                          table.name
+                        )} ${
+                    sqlColumns.length
+                      ? sql.fragment`(
                             ${sql.join(sqlColumns, ', ')}
                           ) values(${sql.join(sqlValues, ', ')})
                           on conflict (${sql.join(
-    sqlPrimaryKeys,
-    ', '
-  )}) do update
+                            sqlPrimaryKeys,
+                            ', '
+                          )}) do update
                           set ${sql.join(conflictUpdateArray, ', ')}`
-    : sql.fragment`default values`
-} returning *`
+                      : sql.fragment`default values`
+                  } returning *`
 
                   const rows = await viaTemporaryTable(
                     pgClient,

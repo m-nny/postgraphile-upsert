@@ -75,7 +75,12 @@ const all = async t => {
 const create = async t => {
   const query = nanographql`
     mutation {
-      upsertBike(input: {
+      upsertBike(where: {
+        bike: {
+          make: "kona"
+        }
+      }, 
+      input: {
         bike: {
           weight: 25.6
           make: "kona"
@@ -101,3 +106,8 @@ test('test upsert crud', async t => {
   t.is(res.data.allBikes.edges.length, 1)
   t.is(res.data.allBikes.edges[0].node.make, 'kona')
 })
+
+// "should create a new record when one doesn't exist"
+// "should update a record when one does exist"
+// "shouldn't update if more than one exists"
+//
