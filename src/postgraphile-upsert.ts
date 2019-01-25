@@ -68,7 +68,10 @@ const PgMutationUpsertPlugin: Plugin = builder => {
            * PgAllRows
            */
 
-          // The fields are...
+          // For each unique constraint we gather all of the fields into an
+          // InputType _technically_ we probably want to have **each**
+          // uniqueConstraint create it's own type and then union these, but
+          // YOLO
           const fields = uniqueConstraints.reduce((acc, constraint) => {
             const keys = constraint.keyAttributeNums.map(num =>
               attributes.find(attr => attr.num === num)
@@ -79,23 +82,22 @@ const PgMutationUpsertPlugin: Plugin = builder => {
             if (!keys.every(_ => _)) {
               throw new Error('Consistency error: could not find an attribute!')
             }
-            // TODO -- handle compound keys
-            const key = keys[0]
-            // TODO -- what's the proper inflection here?
-            const fieldName = inflection.camelCase(key.name)
-
-            const InputType = pgGetGqlInputTypeByTypeIdAndModifier(
-              key.typeId,
-              key.typeModifier
-            )
-            if (!InputType) {
-              throw new Error(
-                `Could not find input type for key '${
-                  key.name
-                }' on type '${tableTypeName}'`
+            //
+            keys.forEach(key => {
+              const fieldName = inflection.camelCase(key.name)
+              const InputType = pgGetGqlInputTypeByTypeIdAndModifier(
+                key.typeId,
+                key.typeModifier
               )
-            }
-            acc[fieldName] = { type: InputType }
+              if (!InputType) {
+                throw new Error(
+                  `Could not find input type for key '${
+                    key.name
+                  }' on type '${tableTypeName}'`
+                )
+              }
+              acc[fieldName] = { type: InputType }
+            })
             return acc
           }, {})
 
@@ -225,13 +227,15 @@ const PgMutationUpsertPlugin: Plugin = builder => {
                   )
 
                   // Figure out to which columns the unique constraints belong to
-                  const uniqueKeys = uniqueConstraints.map(constraint => {
+                  const uniqueKeys = uniqueConstraints.reduce((
+                    acc,
+                    constraint
+                  ) => {
                     const keys = constraint.keyAttributeNums.map(num =>
                       attributes.find(attr => attr.num === num)
                     )
-                    // TODO -- eventually we should handle compound keys
-                    return keys[0]
-                  })
+                    return [...acc, ...keys]
+                  }, [])
 
                   // Loop thru columns and "SQLify" them
                   attributes.forEach(attr => {
