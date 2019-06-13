@@ -259,7 +259,7 @@ const PgMutationUpsertPlugin: Plugin = builder => {
 
                   const uniqueKeyColumns = uniqueKeys
                     .map(attr => {
-                      const whereValue = where[attr.name]
+                      const whereValue = where[inflection.camelCase(attr.name)]
                       if (whereValue) {
                         return sql.fragment`${sql.identifier(attr.name)}`
                       }
