@@ -1,7 +1,7 @@
 {
-  "name": "postgraphile-upsert-plugin",
+  "name": "@m-nny/postgraphile-upsert-plugin",
   "description": "add postgres upsert mutations to postgraphile",
-  "version": "0.0.0-semantically-released",
+  "version": "0.0.0-development",
   "main": "build/postgraphile-upsert.js",
   "files": [
     "build/*.js",
@@ -34,7 +34,7 @@
     "postgraphile": "4.4.4",
     "postgraphile-core": "4.5.3",
     "prettier-standard": "13.0.6",
-    "semantic-release": "17.0.3",
+    "semantic-release": "^17.1.1",
     "standard": "12.0.1",
     "typescript": "3.7.5"
   },
@@ -57,7 +57,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/cdaringe/postgraphile-upsert.git"
+    "url": "https://github.com/m-nny/postgraphile-upsert.git"
   },
   "keywords": [
     "postgres",
@@ -68,10 +68,10 @@
     "mutation"
   ],
   "lint-staged": {
-      "{src,test,scripts}/**/*.{ts,tsx}": [
-        "yarn format",
-        "yarn lint"
-      ]
+    "{src,test,scripts}/**/*.{ts,tsx}": [
+      "yarn format",
+      "yarn lint"
+    ]
   },
   "standard": {
     "parser": "@typescript-eslint/parser",
