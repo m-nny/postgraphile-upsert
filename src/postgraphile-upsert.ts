@@ -129,10 +129,9 @@ const PgMutationUpsertPlugin: Plugin = builder => {
                 },
                 ...(TableInput
                   ? {
-                      [inflection.tableFieldName(table)]: {
-                        description: `The \`${tableTypeName}\` to be upserted by this mutation.`,
-                        type: new GraphQLNonNull(TableInput)
-                      }
+                    [inflection.tableFieldName(table)]: {
+                      description: `The \`${tableTypeName}\` to be upserted by this mutation.`,
+                      type: new GraphQLNonNull(TableInput)
                     }
                   }
                   : null)
@@ -227,15 +226,15 @@ const PgMutationUpsertPlugin: Plugin = builder => {
                   )
 
                   // Figure out to which columns the unique constraints belong to
-                  const uniqueKeys = uniqueConstraints.reduce((
-                    acc,
-                    constraint
-                  ) => {
-                    const keys = constraint.keyAttributeNums.map(num =>
-                      attributes.find(attr => attr.num === num)
-                    )
-                    return [...acc, ...keys]
-                  }, [])
+                  const uniqueKeys = uniqueConstraints.reduce(
+                    (acc, constraint) => {
+                      const keys = constraint.keyAttributeNums.map(num =>
+                        attributes.find(attr => attr.num === num)
+                      )
+                      return [...acc, ...keys]
+                    },
+                    []
+                  )
 
                   // Loop thru columns and "SQLify" them
                   attributes.forEach(attr => {
@@ -266,26 +265,24 @@ const PgMutationUpsertPlugin: Plugin = builder => {
                     })
                     .filter(v => v)
 
-                  const sqlPrimaryKeys = []
-
                   // SQL query for upsert mutations
-                  //see: http://www.postgresqltutorial.com/postgresql-upsert/
+                  // see: http://www.postgresqltutorial.com/postgresql-upsert/
                   const mutationQuery = sql.query`
                         insert into ${sql.identifier(
-                          table.namespace.name,
-                          table.name
-                        )} ${
-                    sqlColumns.length
-                      ? sql.fragment`(
+    table.namespace.name,
+    table.name
+  )} ${
+  sqlColumns.length
+    ? sql.fragment`(
                             ${sql.join(sqlColumns, ', ')}
                           ) values(${sql.join(sqlValues, ', ')})
                           on conflict (${sql.join(
-                            uniqueKeyColumns,
-                            ',  '
-                          )})  do update
+    uniqueKeyColumns,
+    ',  '
+  )})  do update
                           set ${sql.join(conflictUpdateArray, ', ')}`
-                      : sql.fragment`default values`
-                  } returning *`
+    : sql.fragment`default values`
+} returning *`
 
                   const rows = await viaTemporaryTable(
                     pgClient,

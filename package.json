@@ -1,7 +1,7 @@
 {
-  "name": "@fullstackio/postgraphile-upsert-plugin",
+  "name": "postgraphile-upsert-plugin",
   "description": "add postgres upsert mutations to postgraphile",
-  "version": "1.4.0",
+  "version": "0.0.0-semantically-released",
   "main": "build/postgraphile-upsert.js",
   "files": [
     "build/*.js",
@@ -10,7 +10,7 @@
   "engines": {
     "node": ">=8"
   },
-  "maintainer": "nmurray <nate@fullstack.io>",
+  "author": "cdaringe <cdaringe@gmail.com>",
   "license": "MIT",
   "devDependencies": {
     "@commitlint/cli": "8.3.5",
@@ -57,13 +57,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/jashmenn/postgraphile-upsert-plugin"
-  },
-  "publishConfig": {
-    "access": "public"
-  },
-  "release": {
-    "repositoryUrl": "git@github.com:jashmenn/postgraphile-upsert-plugin.git"
+    "url": "https://github.com/cdaringe/postgraphile-upsert.git"
   },
   "keywords": [
     "postgres",
@@ -74,13 +68,10 @@
     "mutation"
   ],
   "lint-staged": {
-    "linters": {
       "{src,test,scripts}/**/*.{ts,tsx}": [
         "yarn format",
-        "yarn lint",
-        "git add"
+        "yarn lint"
       ]
-    }
   },
   "standard": {
     "parser": "@typescript-eslint/parser",
